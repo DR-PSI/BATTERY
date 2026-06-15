@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PowerEye Sentinel – Substation Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060c16;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column}
+.header{background:#0d1420;border-bottom:1px solid #1a2a40;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-title{font-size:14px;font-weight:700;color:#fff}
+.header-sub{font-size:10px;color:#3a6080;margin-top:1px}
+.live-badge{display:flex;align-items:center;gap:5px;background:#0a1e10;border:1px solid #1a4a20;border-radius:4px;padding:4px 10px;font-size:9px;color:#2ecc71}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#2ecc71;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.8)}}
+.stats-bar{background:#0a1220;border-bottom:1px solid #111e30;padding:8px 16px;display:flex;gap:16px;flex-shrink:0;overflow-x:auto}
+.stat{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.stat-val{font-size:13px;font-weight:700;color:#fff}
+.stat-lbl{font-size:9px;color:#3a5070}
+.stat-div{width:1px;background:#1a2a3a;flex-shrink:0}
+#map{flex:1;z-index:1}
+/* Leaflet dark overrides */
+.leaflet-tile-pane{filter:brightness(0.55) saturate(0.4) hue-rotate(200deg)}
+.leaflet-container{background:#060c16}
+/* Custom popup */
+.leaflet-popup-content-wrapper{background:#0d1828;border:1px solid #1a3a5a;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.7);padding:0}
+.leaflet-popup-content{margin:0;min-width:220px}
+.leaflet-popup-tip{background:#0d1828}
+.leaflet-popup-close-button{color:#3a6080!important;font-size:18px!important;padding:6px 8px!important}
+.popup-header{padding:10px 14px 8px;border-bottom:1px solid #1a2e48}
+.popup-id{font-size:11px;font-weight:700;color:#fff;margin-bottom:2px}
+.popup-name{font-size:9px;color:#4a7aaa}
+.popup-body{padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.popup-stat{background:#060e18;border-radius:5px;padding:5px 7px}
+.popup-stat-val{font-size:12px;font-weight:700}
+.popup-stat-lbl{font-size:8px;color:#3a5070;margin-top:1px}
+.popup-footer{padding:0 14px 10px;display:flex;gap:6px}
+.popup-btn{flex:1;padding:5px;border-radius:4px;font-size:9px;font-weight:600;cursor:pointer;border:none;text-align:center}
+.btn-detail{background:#7c6fe0;color:#fff}
+.btn-alarm{background:#1a0a0a;color:#e74c3c;border:1px solid #3a1010}
+/* Sidebar panel */
+.side-panel{position:absolute;top:0;right:0;bottom:0;width:280px;background:#090f1c;border-left:1px solid #111e30;z-index:1000;transform:translateX(100%);transition:transform .3s;display:flex;flex-direction:column}
+.side-panel.open{transform:translateX(0)}
+.sp-header{padding:12px 14px;border-bottom:1px solid #111e30;display:flex;align-items:center;justify-content:space-between}
+.sp-title{font-size:12px;font-weight:700;color:#fff}
+.sp-close{background:none;border:none;color:#3a6080;font-size:18px;cursor:pointer;line-height:1}
+.sp-body{flex:1;overflow-y:auto;padding:10px}
+.sp-kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.sp-kpi-card{background:#060e18;border:0.5px solid #1a2a3a;border-radius:6px;padding:8px}
+.sp-kpi-val{font-size:16px;font-weight:700}
+.sp-kpi-lbl{font-size:8px;color:#3a5070;margin-top:1px}
+.sp-section{font-size:9px;font-weight:600;color:#2a4a6a;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 5px}
+.bank-row{background:#060e18;border:0.5px solid #111e2a;border-radius:5px;padding:7px 9px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.bank-name{font-size:9px;color:#ccc;font-weight:500}
+.bank-vals{display:flex;gap:8px;font-size:9px}
+.cell-mini{display:grid;grid-template-columns:repeat(12,1fr);gap:2px;margin-top:6px}
+.cm-ok  {background:#0d3a1a;border-radius:2px;aspect-ratio:1}
+.cm-warn{background:#3a2500;border-radius:2px;aspect-ratio:1}
+.cm-crit{background:#3a0808;border-radius:2px;aspect-ratio:1}
+/* Legend */
+.legend{position:absolute;bottom:30px;left:10px;z-index:500;background:#090f1c;border:1px solid #111e30;border-radius:6px;padding:8px 12px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:9px;color:#3a6080;margin-bottom:4px}
+.legend-item:last-child{margin-bottom:0}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+/* Toolbar */
+.toolbar{position:absolute;top:10px;left:10px;z-index:500;display:flex;flex-direction:column;gap:4px}
+.tool-btn{background:#090f1c;border:1px solid #111e30;border-radius:5px;padding:6px 10px;font-size:9px;color:#4a7aaa;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tool-btn:hover{background:#111e30;color:#fff}
+.tool-btn.active{background:#7c6fe0;color:#fff;border-color:#7c6fe0}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-title">🏭 PowerEye Sentinel – Substation Map</div>
+      <div class="header-sub">PEA Enterprise Network · กด Zoom เพื่อขยายแผนที่ · คลิกจุดเพื่อดูรายละเอียด</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="live-badge"><span class="live-dot"></span>LIVE · 12 Online</div>
+    <div style="font-size:9px;color:#2a4060" id="clock"></div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">สถานีทั้งหมด</div></div>
+  <div class="stat-div"></div>
+  <div class="stat"><div class="stat-val">38</div><div class="stat-lbl">Battery Strings</div></div>
+  <div class="stat-div"></div>
+  <div class="stat"><div class="stat-val" style="color:#2ecc71">8</div><div class="stat-lbl">Normal</div></div>
+  <div class="stat-div"></div>
+  <div class="stat"><div class="stat-val" style="color:#f39c12">3</div><div class="stat-lbl">Warning</div></div>
+  <div class="stat-div"></div>
+  <div class="stat"><div class="stat-val" style="color:#e74c3c">1</div><div class="stat-lbl">Critical</div></div>
+  <div class="stat-div"></div>
+  <div class="stat"><div class="stat-val" style="color:#f39c12">7</div><div class="stat-lbl">Active Alarms</div></div>
+  <div class="stat-div"></div>
+  <div class="stat"><div class="stat-val" style="color:#2ecc71">89.4%</div><div class="stat-lbl">Avg SOH</div></div>
+</div>
+
+<div style="position:relative;flex:1;display:flex">
+  <div id="map"></div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="tool-btn active" onclick="filterMarkers('all',this)">🗺 ทั้งหมด</div>
+    <div class="tool-btn" onclick="filterMarkers('warning',this)">⚠ Warning</div>
+    <div class="tool-btn" onclick="filterMarkers('critical',this)">🔴 Critical</div>
+    <div class="tool-btn" onclick="fitAll()">⊞ Fit All</div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#2ecc71;box-shadow:0 0 6px #2ecc71"></div>Normal</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f39c12;box-shadow:0 0 6px #f39c12"></div>Warning</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e74c3c;box-shadow:0 0 6px #e74c3c"></div>Critical</div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <div class="sp-header">
+      <div class="sp-title" id="spTitle">—</div>
+      <button class="sp-close" onclick="closePanel()">×</button>
+    </div>
+    <div class="sp-body" id="spBody"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const stations = [
+  {id:'BKK-01',name:'บางเขน',    loc:'กรุงเทพฯ เหนือ', lat:13.880,lng:100.618,status:'normal',  soh:92,strings:3,cells:48,voltage:13.52,current:12.4,temp:17.9,ir:10.81,norm:39,warn:9, crit:0,alarms:0},
+  {id:'BKK-02',name:'ลาดพร้าว',  loc:'กรุงเทพฯ เหนือ', lat:13.810,lng:100.642,status:'normal',  soh:88,strings:2,cells:48,voltage:13.48,current:8.2, temp:18.5,ir:11.20,norm:42,warn:6, crit:0,alarms:0},
+  {id:'BKK-03',name:'มีนบุรี',   loc:'กรุงเทพฯ เหนือ', lat:13.815,lng:100.742,status:'warning', soh:81,strings:4,cells:48,voltage:13.31,current:15.1,temp:21.2,ir:12.85,norm:31,warn:14,crit:3,alarms:3},
+  {id:'BKK-04',name:'หลักสี่',   loc:'กรุงเทพฯ เหนือ', lat:13.895,lng:100.578,status:'normal',  soh:90,strings:2,cells:48,voltage:13.55,current:9.8, temp:18.1,ir:10.55,norm:44,warn:4, crit:0,alarms:0},
+  {id:'NBR-01',name:'นนทบุรี',   loc:'นนทบุรี',         lat:13.858,lng:100.508,status:'normal',  soh:94,strings:3,cells:48,voltage:13.61,current:11.2,temp:17.5,ir:10.10,norm:46,warn:2, crit:0,alarms:0},
+  {id:'NBR-02',name:'ปากเกร็ด',  loc:'นนทบุรี',         lat:13.910,lng:100.495,status:'warning', soh:84,strings:2,cells:48,voltage:13.28,current:18.6,temp:22.1,ir:12.40,norm:35,warn:11,crit:2,alarms:2},
+  {id:'PTE-01',name:'ปทุมธานี',  loc:'ปทุมธานี',        lat:14.015,lng:100.538,status:'normal',  soh:91,strings:3,cells:48,voltage:13.50,current:10.5,temp:18.8,ir:10.75,norm:40,warn:8, crit:0,alarms:0},
+  {id:'PTE-02',name:'ธัญบุรี',   loc:'ปทุมธานี',        lat:14.020,lng:100.705,status:'critical',soh:72,strings:2,cells:48,voltage:12.95,current:22.3,temp:25.6,ir:14.20,norm:22,warn:18,crit:8,alarms:4},
+  {id:'SMT-01',name:'สมุทรปราการ',loc:'สมุทรปราการ',     lat:13.598,lng:100.600,status:'normal',  soh:89,strings:3,cells:48,voltage:13.44,current:13.7,temp:19.2,ir:11.05,norm:37,warn:10,crit:1,alarms:1},
+  {id:'CHB-01',name:'ชลบุรี',    loc:'ชลบุรี',          lat:13.362,lng:100.985,status:'normal',  soh:93,strings:4,cells:48,voltage:13.58,current:9.1, temp:18.0,ir:10.30,norm:44,warn:4, crit:0,alarms:0},
+  {id:'RYG-01',name:'ระยอง',     loc:'ระยอง',           lat:12.682,lng:101.280,status:'warning', soh:83,strings:3,cells:48,voltage:13.22,current:19.4,temp:23.8,ir:12.95,norm:29,warn:15,crit:4,alarms:2},
+  {id:'CCA-01',name:'ฉะเชิงเทรา',loc:'ฉะเชิงเทรา',      lat:13.693,lng:101.075,status:'normal',  soh:87,strings:2,cells:48,voltage:13.40,current:11.8,temp:19.5,ir:11.40,norm:38,warn:10,crit:0,alarms:0},
+];
+
+const colMap = {normal:'#2ecc71', warning:'#f39c12', critical:'#e74c3c'};
+
+// ── MAP INIT ──────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [13.5, 100.8],
+  zoom: 10,
+  zoomControl: true,
+  attributionControl: true,
+});
+
+// Dark tile layer (CartoDB Dark Matter)
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap © CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// ── CUSTOM MARKER ICON ────────────────────────────────────────
+function makeIcon(status, size=18) {
+  const col = colMap[status];
+  const pulse = (status==='warning'||status==='critical') ?
+    `<circle cx="${size/2}" cy="${size/2}" r="${size/2-1}" fill="none" stroke="${col}" stroke-width="1.5" opacity="0.5">
+      <animate attributeName="r" values="${size/2-1};${size-2};${size/2-1}" dur="${status==='critical'?'1.4':'2'}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;0;0.7" dur="${status==='critical'?'1.4':'2'}s" repeatCount="indefinite"/>
+    </circle>` : '';
+  const svg = `<svg width="${size*2}" height="${size*2}" viewBox="0 0 ${size*2} ${size*2}" xmlns="http://www.w3.org/2000/svg">
+    ${pulse}
+    <circle cx="${size}" cy="${size}" r="${size/2+1}" fill="#000" opacity="0.4"/>
+    <circle cx="${size}" cy="${size}" r="${size/2}" fill="${col}" opacity="0.95"/>
+    <circle cx="${size}" cy="${size}" r="${size/2*0.4}" fill="#fff" opacity="0.5"/>
+    <circle cx="${size-size*0.12}" cy="${size-size*0.12}" r="${size/2*0.15}" fill="#fff" opacity="0.4"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    iconSize: [size*2, size*2],
+    iconAnchor: [size, size],
+    popupAnchor: [0, -size],
+    className: ''
+  });
+}
+
+// ── MARKERS ───────────────────────────────────────────────────
+const markers = [];
+stations.forEach((s, idx) => {
+  const sz = s.status==='critical'?22:s.status==='warning'?18:15;
+  const m = L.marker([s.lat, s.lng], {icon: makeIcon(s.status, sz)});
+
+  const sohCol = s.soh>85?'#2ecc71':s.soh>75?'#f39c12':'#e74c3c';
+  const stBadge = `<span style="padding:2px 6px;border-radius:3px;font-size:8px;font-weight:700;background:${s.status==='critical'?'#2a0808':s.status==='warning'?'#2a1800':'#082a10'};color:${colMap[s.status]}">${s.status.toUpperCase()}</span>`;
+
+  const popupHtml = `
+    <div class="popup-header">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div class="popup-id">${s.id} – ${s.name}</div><div class="popup-name">📍 ${s.loc}</div></div>
+        ${stBadge}
+      </div>
+    </div>
+    <div class="popup-body">
+      <div class="popup-stat"><div class="popup-stat-val" style="color:${sohCol}">${s.soh}%</div><div class="popup-stat-lbl">SOH</div></div>
+      <div class="popup-stat"><div class="popup-stat-val" style="color:#7c6fe0">${s.voltage.toFixed(2)}V</div><div class="popup-stat-lbl">Voltage</div></div>
+      <div class="popup-stat"><div class="popup-stat-val" style="color:#f39c12">${s.temp.toFixed(1)}°C</div><div class="popup-stat-lbl">Temp</div></div>
+      <div class="popup-stat"><div class="popup-stat-val" style="color:${s.ir>12?'#e74c3c':s.ir>11?'#f39c12':'#2ecc71'}">${s.ir.toFixed(2)}mΩ</div><div class="popup-stat-lbl">Avg IR</div></div>
+      <div class="popup-stat"><div class="popup-stat-val" style="color:#3a8fd9">${s.current.toFixed(1)}A</div><div class="popup-stat-lbl">Current</div></div>
+      <div class="popup-stat"><div class="popup-stat-val">${s.strings}</div><div class="popup-stat-lbl">Strings</div></div>
+    </div>
+    <div class="popup-footer">
+      <div class="popup-btn btn-detail" onclick="openPanel(${idx})">📊 รายละเอียด</div>
+      ${s.alarms>0?`<div class="popup-btn btn-alarm">⚠ ${s.alarms} Alarm</div>`:''}
+    </div>`;
+
+  m.bindPopup(popupHtml, {maxWidth:260, minWidth:240});
+  m.addTo(map);
+  m._stationIdx = idx;
+  m._status = s.status;
+  markers.push(m);
+});
+
+// ── FILTER ────────────────────────────────────────────────────
+function filterMarkers(type, el) {
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  markers.forEach(m => {
+    const st = m._status;
+    if(type==='all') { map.addLayer(m); }
+    else if(type===st) { map.addLayer(m); }
+    else { map.removeLayer(m); }
+  });
+}
+
+function fitAll() {
+  const group = L.featureGroup(markers.filter(m=>map.hasLayer(m)));
+  map.fitBounds(group.getBounds().pad(0.1));
+}
+
+// ── SIDE PANEL ────────────────────────────────────────────────
+function openPanel(idx) {
+  const s = stations[idx];
+  const sohCol = s.soh>85?'#2ecc71':s.soh>75?'#f39c12':'#e74c3c';
+  const irCol  = s.ir>12?'#e74c3c':s.ir>11?'#f39c12':'#2ecc71';
+  const stBadge = `<span style="padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;background:${s.status==='critical'?'#2a0808':s.status==='warning'?'#2a1800':'#082a10'};color:${colMap[s.status]}">${s.status.toUpperCase()}</span>`;
+
+  document.getElementById('spTitle').innerHTML = `${s.id} – ${s.name} ${stBadge}`;
+
+  let cellHtml = '<div class="cell-mini">';
+  const total = s.norm + s.warn + s.crit;
+  let n=0,w=0,c=0;
+  for(let i=0;i<total;i++){
+    const r=Math.random();
+    let cls;
+    if(c<s.crit&&(r<s.crit/total||i>=total-s.crit+c)){cls='cm-crit';c++;}
+    else if(w<s.warn&&(r<(s.warn+s.crit)/total)){cls='cm-warn';w++;}
+    else{cls='cm-ok';n++;}
+    cellHtml+=`<div class="${cls}" title="Cell ${i+1}"></div>`;
+  }
+  cellHtml+='</div>';
+
+  let banksHtml='';
+  for(let i=0;i<s.strings;i++){
+    const bv=(s.voltage+(Math.random()*0.08-0.04)).toFixed(3);
+    const bi=(s.current+(Math.random()*2-1)).toFixed(1);
+    const bs=(s.soh+(Math.random()*3-1.5)).toFixed(1);
+    banksHtml+=`<div class="bank-row">
+      <div class="bank-name">Bank ${s.id}-${String.fromCharCode(65+i)}</div>
+      <div class="bank-vals">
+        <span style="color:#7c6fe0">${bv}V</span>
+        <span style="color:#3a8fd9">${bi}A</span>
+        <span style="color:${+bs>85?'#2ecc71':+bs>75?'#f39c12':'#e74c3c'}">${bs}%</span>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('spBody').innerHTML = `
+    <div style="font-size:9px;color:#2a4a6a;margin-bottom:6px">📍 ${s.loc} · ${s.strings} strings · 48 cells/string</div>
+    <div class="sp-kpi">
+      <div class="sp-kpi-card"><div class="sp-kpi-val" style="color:${sohCol}">${s.soh}%</div><div class="sp-kpi-lbl">SOH</div></div>
+      <div class="sp-kpi-card"><div class="sp-kpi-val" style="color:#7c6fe0">${s.voltage.toFixed(3)}V</div><div class="sp-kpi-lbl">String Voltage</div></div>
+      <div class="sp-kpi-card"><div class="sp-kpi-val" style="color:#f39c12">${s.temp.toFixed(1)}°C</div><div class="sp-kpi-lbl">Ambient Temp</div></div>
+      <div class="sp-kpi-card"><div class="sp-kpi-val" style="color:${irCol}">${s.ir.toFixed(2)}mΩ</div><div class="sp-kpi-lbl">Avg IR</div></div>
+      <div class="sp-kpi-card"><div class="sp-kpi-val" style="color:#3a8fd9">${s.current.toFixed(1)}A</div><div class="sp-kpi-lbl">String Current</div></div>
+      <div class="sp-kpi-card"><div class="sp-kpi-val" style="color:${s.alarms>0?'#e74c3c':'#555'}">${s.alarms}</div><div class="sp-kpi-lbl">Active Alarms</div></div>
+    </div>
+    <div class="sp-section">Battery Banks</div>
+    ${banksHtml}
+    <div class="sp-section">Cell Status · ${s.norm}✓ ${s.warn}⚠ ${s.crit}✕</div>
+    <div style="display:flex;gap:8px;font-size:8px;color:#2a4060;margin-bottom:4px">
+      <span><span style="display:inline-block;width:8px;height:8px;background:#0d3a1a;border-radius:1px;margin-right:3px"></span>Normal</span>
+      <span><span style="display:inline-block;width:8px;height:8px;background:#3a2500;border-radius:1px;margin-right:3px"></span>Warning</span>
+      <span><span style="display:inline-block;width:8px;height:8px;background:#3a0808;border-radius:1px;margin-right:3px"></span>Critical</span>
+    </div>
+    ${cellHtml}`;
+  document.getElementById('sidePanel').classList.add('open');
+}
+
+function closePanel(){document.getElementById('sidePanel').classList.remove('open');}
+
+// ── CLOCK ─────────────────────────────────────────────────────
+setInterval(()=>{
+  const el=document.getElementById('clock');
+  if(el)el.textContent=new Date().toLocaleString('th-TH',{hour12:false});
+},1000);
+
+// ── RT VALUE DRIFT ────────────────────────────────────────────
+setInterval(()=>{
+  stations.forEach(s=>{
+    s.voltage=+Math.max(12.8,Math.min(13.8,(s.voltage+(Math.random()*0.02-0.01))).toFixed(3));
+    s.temp=+Math.max(15,Math.min(26,(s.temp+(Math.random()*0.2-0.1))).toFixed(1));
+    s.current=+Math.max(0,Math.min(30,(s.current+(Math.random()*0.4-0.2))).toFixed(1));
+  });
+},3000);
+</script>
+</body>
+</html>
