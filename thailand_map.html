@@ -8,67 +8,67 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#060c16;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column}
-.header{background:#0d1420;border-bottom:1px solid #1a2a40;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+body{background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column}
+.header{background:#ffffff;border-bottom:1px solid #dde3ea;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .header-left{display:flex;align-items:center;gap:10px}
-.header-title{font-size:14px;font-weight:700;color:#fff}
-.header-sub{font-size:10px;color:#3a6080;margin-top:1px}
-.live-badge{display:flex;align-items:center;gap:5px;background:#0a1e10;border:1px solid #1a4a20;border-radius:4px;padding:4px 10px;font-size:9px;color:#2ecc71}
+.header-title{font-size:14px;font-weight:700;color:#1a2a3a}
+.header-sub{font-size:10px;color:#6a8aaa;margin-top:1px}
+.live-badge{display:flex;align-items:center;gap:5px;background:#eafaf1;border:1px solid #a8dfc0;border-radius:4px;padding:4px 10px;font-size:9px;color:#2ecc71}
 .live-dot{width:6px;height:6px;border-radius:50%;background:#2ecc71;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.8)}}
-.stats-bar{background:#0a1220;border-bottom:1px solid #111e30;padding:8px 16px;display:flex;gap:16px;flex-shrink:0;overflow-x:auto}
+.stats-bar{background:#f7fafc;border-bottom:1px solid #dde3ea;padding:8px 16px;display:flex;gap:16px;flex-shrink:0;overflow-x:auto}
 .stat{display:flex;align-items:center;gap:6px;white-space:nowrap}
-.stat-val{font-size:13px;font-weight:700;color:#fff}
-.stat-lbl{font-size:9px;color:#3a5070}
-.stat-div{width:1px;background:#1a2a3a;flex-shrink:0}
+.stat-val{font-size:13px;font-weight:700;color:#1a2a3a}
+.stat-lbl{font-size:9px;color:#7a9ab0}
+.stat-div{width:1px;background:#dde3ea;flex-shrink:0}
 #map{flex:1;z-index:1}
 /* Leaflet dark overrides */
-.leaflet-tile-pane{filter:brightness(0.55) saturate(0.4) hue-rotate(200deg)}
-.leaflet-container{background:#060c16}
+.leaflet-tile-pane{filter:none}
+.leaflet-container{background:#e8edf2}
 /* Custom popup */
-.leaflet-popup-content-wrapper{background:#0d1828;border:1px solid #1a3a5a;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.7);padding:0}
+.leaflet-popup-content-wrapper{background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.7);padding:0}
 .leaflet-popup-content{margin:0;min-width:220px}
-.leaflet-popup-tip{background:#0d1828}
-.leaflet-popup-close-button{color:#3a6080!important;font-size:18px!important;padding:6px 8px!important}
-.popup-header{padding:10px 14px 8px;border-bottom:1px solid #1a2e48}
-.popup-id{font-size:11px;font-weight:700;color:#fff;margin-bottom:2px}
-.popup-name{font-size:9px;color:#4a7aaa}
+.leaflet-popup-tip{background:#ffffff}
+.leaflet-popup-close-button{color:#6a8aaa!important;font-size:18px!important;padding:6px 8px!important}
+.popup-header{padding:10px 14px 8px;border-bottom:1px solid #e0eaf4}
+.popup-id{font-size:11px;font-weight:700;color:#1a2a3a;margin-bottom:2px}
+.popup-name{font-size:9px;color:#6a9abc}
 .popup-body{padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.popup-stat{background:#060e18;border-radius:5px;padding:5px 7px}
+.popup-stat{background:#f0f6fc;border-radius:5px;padding:5px 7px}
 .popup-stat-val{font-size:12px;font-weight:700}
-.popup-stat-lbl{font-size:8px;color:#3a5070;margin-top:1px}
+.popup-stat-lbl{font-size:8px;color:#7a9ab0;margin-top:1px}
 .popup-footer{padding:0 14px 10px;display:flex;gap:6px}
 .popup-btn{flex:1;padding:5px;border-radius:4px;font-size:9px;font-weight:600;cursor:pointer;border:none;text-align:center}
 .btn-detail{background:#7c6fe0;color:#fff}
 .btn-alarm{background:#1a0a0a;color:#e74c3c;border:1px solid #3a1010}
 /* Sidebar panel */
-.side-panel{position:absolute;top:0;right:0;bottom:0;width:280px;background:#090f1c;border-left:1px solid #111e30;z-index:1000;transform:translateX(100%);transition:transform .3s;display:flex;flex-direction:column}
+.side-panel{position:absolute;top:0;right:0;bottom:0;width:280px;background:#ffffff;border-left:1px solid #c8d8e8;box-shadow:-4px 0 16px rgba(0,0,0,0.12);z-index:1000;transform:translateX(100%);transition:transform .3s;display:flex;flex-direction:column}
 .side-panel.open{transform:translateX(0)}
-.sp-header{padding:12px 14px;border-bottom:1px solid #111e30;display:flex;align-items:center;justify-content:space-between}
-.sp-title{font-size:12px;font-weight:700;color:#fff}
-.sp-close{background:none;border:none;color:#3a6080;font-size:18px;cursor:pointer;line-height:1}
+.sp-header{padding:12px 14px;border-bottom:1px solid #e0eaf4;background:#f7fafc;display:flex;align-items:center;justify-content:space-between}
+.sp-title{font-size:12px;font-weight:700;color:#1a2a3a}
+.sp-close{background:none;border:none;color:#7a9ab0;font-size:18px;cursor:pointer;line-height:1}
 .sp-body{flex:1;overflow-y:auto;padding:10px}
 .sp-kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
-.sp-kpi-card{background:#060e18;border:0.5px solid #1a2a3a;border-radius:6px;padding:8px}
+.sp-kpi-card{background:#f0f6fc;border:0.5px solid #d0e4f4;border-radius:6px;padding:8px}
 .sp-kpi-val{font-size:16px;font-weight:700}
-.sp-kpi-lbl{font-size:8px;color:#3a5070;margin-top:1px}
-.sp-section{font-size:9px;font-weight:600;color:#2a4a6a;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 5px}
-.bank-row{background:#060e18;border:0.5px solid #111e2a;border-radius:5px;padding:7px 9px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
-.bank-name{font-size:9px;color:#ccc;font-weight:500}
+.sp-kpi-lbl{font-size:8px;color:#7a9ab0;margin-top:1px}
+.sp-section{font-size:9px;font-weight:600;color:#4a7aaa;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 5px}
+.bank-row{background:#f7fbff;border:0.5px solid #d0e4f4;border-radius:5px;padding:7px 9px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.bank-name{font-size:9px;color:#2a4a6a;font-weight:500}
 .bank-vals{display:flex;gap:8px;font-size:9px}
 .cell-mini{display:grid;grid-template-columns:repeat(12,1fr);gap:2px;margin-top:6px}
 .cm-ok  {background:#0d3a1a;border-radius:2px;aspect-ratio:1}
 .cm-warn{background:#3a2500;border-radius:2px;aspect-ratio:1}
 .cm-crit{background:#3a0808;border-radius:2px;aspect-ratio:1}
 /* Legend */
-.legend{position:absolute;bottom:30px;left:10px;z-index:500;background:#090f1c;border:1px solid #111e30;border-radius:6px;padding:8px 12px}
-.legend-item{display:flex;align-items:center;gap:6px;font-size:9px;color:#3a6080;margin-bottom:4px}
+.legend{position:absolute;bottom:30px;left:10px;z-index:500;background:#ffffff;border:1px solid #c8d8e8;box-shadow:0 2px 8px rgba(0,0,0,0.12);border-radius:6px;padding:8px 12px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:9px;color:#4a6a8a;margin-bottom:4px}
 .legend-item:last-child{margin-bottom:0}
 .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 /* Toolbar */
 .toolbar{position:absolute;top:10px;left:10px;z-index:500;display:flex;flex-direction:column;gap:4px}
-.tool-btn{background:#090f1c;border:1px solid #111e30;border-radius:5px;padding:6px 10px;font-size:9px;color:#4a7aaa;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px}
-.tool-btn:hover{background:#111e30;color:#fff}
+.tool-btn{background:#ffffff;border:1px solid #c8d8e8;border-radius:5px;padding:6px 10px;font-size:9px;color:#3a6a9a;box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tool-btn:hover{background:#e8f0fa;color:#1a3a6a}
 .tool-btn.active{background:#7c6fe0;color:#fff;border-color:#7c6fe0}
 </style>
 </head>
@@ -159,7 +159,7 @@ const map = L.map('map', {
 });
 
 // Dark tile layer (CartoDB Dark Matter)
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap © CARTO',
   subdomains: 'abcd',
   maxZoom: 19
