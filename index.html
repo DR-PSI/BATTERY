@@ -149,6 +149,199 @@ setInterval(()=>{
   logIdx++;
 },8000);
 
+
+// ─── SUBSTATIONS DATA ───
+const substations = [
+  {id:'BKK-01',name:'บางเขน',loc:'กรุงเทพฯ เหนือ',region:'north', status:'normal',soh:92,strings:3,cells:48,voltage:13.52,current:12.4,temp:17.9,ir:10.81,norm:39,warn:9,crit:0,alarms:0},
+  {id:'BKK-02',name:'ลาดพร้าว',loc:'กรุงเทพฯ เหนือ',region:'north', status:'normal',soh:88,strings:2,cells:48,voltage:13.48,current:8.2, temp:18.5,ir:11.20,norm:42,warn:6,crit:0,alarms:0},
+  {id:'BKK-03',name:'มีนบุรี',loc:'กรุงเทพฯ เหนือ',region:'north', status:'warning',soh:81,strings:4,cells:48,voltage:13.31,current:15.1,temp:21.2,ir:12.85,norm:31,warn:14,crit:3,alarms:3},
+  {id:'BKK-04',name:'หลักสี่',loc:'กรุงเทพฯ เหนือ',region:'north', status:'normal',soh:90,strings:2,cells:48,voltage:13.55,current:9.8, temp:18.1,ir:10.55,norm:44,warn:4,crit:0,alarms:0},
+  {id:'NBR-01',name:'นนทบุรี',loc:'นนทบุรี',region:'central',status:'normal',soh:94,strings:3,cells:48,voltage:13.61,current:11.2,temp:17.5,ir:10.10,norm:46,warn:2,crit:0,alarms:0},
+  {id:'NBR-02',name:'ปากเกร็ด',loc:'นนทบุรี',region:'central',status:'warning',soh:84,strings:2,cells:48,voltage:13.28,current:18.6,temp:22.1,ir:12.40,norm:35,warn:11,crit:2,alarms:2},
+  {id:'PTE-01',name:'ปทุมธานี',loc:'ปทุมธานี',region:'central',status:'normal',soh:91,strings:3,cells:48,voltage:13.50,current:10.5,temp:18.8,ir:10.75,norm:40,warn:8,crit:0,alarms:0},
+  {id:'PTE-02',name:'ธัญบุรี',loc:'ปทุมธานี',region:'central',status:'critical',soh:72,strings:2,cells:48,voltage:12.95,current:22.3,temp:25.6,ir:14.20,norm:22,warn:18,crit:8,alarms:4},
+  {id:'SMT-01',name:'สมุทรปราการ',loc:'สมุทรปราการ',region:'central',status:'normal',soh:89,strings:3,cells:48,voltage:13.44,current:13.7,temp:19.2,ir:11.05,norm:37,warn:10,crit:1,alarms:1},
+  {id:'CHB-01',name:'ชลบุรี',loc:'ชลบุรี',region:'east', status:'normal',soh:93,strings:4,cells:48,voltage:13.58,current:9.1, temp:18.0,ir:10.30,norm:44,warn:4,crit:0,alarms:0},
+  {id:'RYG-01',name:'ระยอง',loc:'ระยอง',region:'east', status:'warning',soh:83,strings:3,cells:48,voltage:13.22,current:19.4,temp:23.8,ir:12.95,norm:29,warn:15,crit:4,alarms:2},
+  {id:'CCA-01',name:'ฉะเชิงเทรา',loc:'ฉะเชิงเทรา',region:'east', status:'normal',soh:87,strings:2,cells:48,voltage:13.40,current:11.8,temp:19.5,ir:11.40,norm:38,warn:10,crit:0,alarms:0},
+];
+
+let currentRegion='all';
+let detailVChart=null, detailTChart=null;
+
+function filterRegion(region, el){
+  currentRegion=region;
+  document.querySelectorAll('.region-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderSubstations();
+}
+
+function renderSubstations(){
+  const grid=document.getElementById('substationGrid');
+  if(!grid)return;
+  const filtered=currentRegion==='all'?substations:substations.filter(s=>s.region===currentRegion);
+  grid.innerHTML=filtered.map((s,idx)=>{
+    const realIdx=substations.indexOf(s);
+    const sc=s.status==='critical'?'sub-crit':s.status==='warning'?'sub-warn':'sub-ok';
+    const vc=s.status==='critical'?'#e74c3c':s.status==='warning'?'#f39c12':'#2ecc71';
+    const bc=s.status==='critical'?'b-crit':s.status==='warning'?'b-warn':'b-ok';
+    const sohPct=(s.soh/100*100).toFixed(0);
+    const sohCol=s.soh>85?'#2ecc71':s.soh>75?'#f39c12':'#e74c3c';
+    return `<div class="sub-card ${sc}" onclick="openSubstation(${realIdx})">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+        <div>
+          <div class="sub-name">${s.id}</div>
+          <div class="sub-loc">📍 ${s.name} · ${s.loc}</div>
+        </div>
+        <span class="badge ${bc}" style="flex-shrink:0">${s.status.toUpperCase()}</span>
+      </div>
+      <div class="sub-stat"><span class="sub-stat-label">SOH</span><span style="color:${sohCol};font-weight:600">${s.soh}%</span></div>
+      <div class="sub-mini-bar"><div class="sub-mini-fill" style="width:${s.soh}%;background:${sohCol}"></div></div>
+      <div class="sub-stat"><span class="sub-stat-label">Voltage</span><span style="color:#ccc">${s.voltage.toFixed(2)} V</span></div>
+      <div class="sub-stat"><span class="sub-stat-label">Temp</span><span style="color:#f39c12">${s.temp.toFixed(1)} °C</span></div>
+      <div class="sub-stat"><span class="sub-stat-label">Avg IR</span><span style="color:${s.ir>12?'#e74c3c':s.ir>11?'#f39c12':'#2ecc71'}">${s.ir.toFixed(2)} mΩ</span></div>
+      <div class="sub-footer">
+        <div class="sub-cells">
+          <span style="color:#2ecc71">✓${s.norm}</span>
+          <span style="color:#f39c12">⚠${s.warn}</span>
+          <span style="color:#e74c3c">✕${s.crit}</span>
+        </div>
+        <div style="font-size:9px;color:#555">${s.strings} strings · ${s.alarms>0?'<span style=color:#e74c3c>⚠ '+s.alarms+' alarm</span>':'<span style=color:#555>No alarm</span>'}</div>
+      </div>
+    </div>`;
+  }).join('');
+  // update total alarms
+  const total=substations.reduce((a,s)=>a+s.alarms,0);
+  const el=document.getElementById('totalAlarms'); if(el)el.textContent=total;
+}
+
+function openSubstation(idx){
+  const s=substations[idx];
+  document.getElementById('subListView').style.display='none';
+  document.getElementById('subDetailView').style.display='block';
+  const bc=s.status==='critical'?'b-crit':s.status==='warning'?'b-warn':'b-ok';
+  const el=id=>document.getElementById(id);
+  if(el('detailTitle'))el('detailTitle').textContent='🏭 '+s.id+' – '+s.name+' ('+s.loc+')';
+  if(el('detailBadge')){el('detailBadge').textContent=s.status.toUpperCase();el('detailBadge').className='badge '+bc;}
+  if(el('detailLastUpdate'))el('detailLastUpdate').textContent='อัปเดต: '+new Date().toLocaleTimeString('th-TH',{hour12:false});
+
+  // KPIs
+  const sohCol=s.soh>85?'#2ecc71':s.soh>75?'#f39c12':'#e74c3c';
+  if(el('detailKpiRow')) el('detailKpiRow').innerHTML=`
+    <div class="kpi-card" style="background:#13151e;border:0.5px solid #2a2d3a;border-radius:8px;padding:10px 12px">
+      <div class="kpi-label">SOH</div>
+      <div style="font-size:22px;font-weight:700;color:${sohCol}">${s.soh}%</div>
+      <div style="font-size:8px;color:#555">Remaining: ${(s.soh*0.027).toFixed(1)} years</div>
+    </div>
+    <div class="kpi-card" style="background:#13151e;border:0.5px solid #2a2d3a;border-radius:8px;padding:10px 12px">
+      <div class="kpi-label">String Voltage</div>
+      <div style="font-size:22px;font-weight:700;color:#7c6fe0">${s.voltage.toFixed(3)} <span style="font-size:10px;color:#888">V</span></div>
+      <div style="font-size:8px;color:#555">${s.strings} strings</div>
+    </div>
+    <div class="kpi-card" style="background:#13151e;border:0.5px solid #2a2d3a;border-radius:8px;padding:10px 12px">
+      <div class="kpi-label">Temperature</div>
+      <div style="font-size:22px;font-weight:700;color:#f39c12">${s.temp.toFixed(1)} <span style="font-size:10px;color:#888">°C</span></div>
+      <div style="font-size:8px;color:#555">Ambient</div>
+    </div>
+    <div class="kpi-card" style="background:#13151e;border:0.5px solid #2a2d3a;border-radius:8px;padding:10px 12px">
+      <div class="kpi-label">Avg IR</div>
+      <div style="font-size:22px;font-weight:700;color:${s.ir>12?'#e74c3c':s.ir>11?'#f39c12':'#2ecc71'}">${s.ir.toFixed(2)} <span style="font-size:10px;color:#888">mΩ</span></div>
+      <div style="font-size:8px;color:#555">${s.alarms} active alarm${s.alarms!==1?'s':''}</div>
+    </div>`;
+
+  // Banks
+  if(el('detailBanks')) el('detailBanks').innerHTML=Array.from({length:s.strings},(_,i)=>{
+    const bv=(s.voltage+(Math.random()*0.1-0.05)).toFixed(3);
+    const bi=(s.current+(Math.random()*2-1)).toFixed(1);
+    const bsoh=(s.soh+(Math.random()*4-2)).toFixed(1);
+    const bir=(s.ir+(Math.random()*0.5-0.25)).toFixed(2);
+    return `<div class="bank-card">
+      <div class="bank-name">Bank ${s.id}-${String.fromCharCode(65+i)} · 48 cells</div>
+      <div class="bank-stats">
+        <div class="bank-stat"><div class="bank-stat-val" style="color:#7c6fe0">${bv}V</div><div class="bank-stat-lbl">Voltage</div></div>
+        <div class="bank-stat"><div class="bank-stat-val" style="color:#3a8fd9">${bi}A</div><div class="bank-stat-lbl">Current</div></div>
+        <div class="bank-stat"><div class="bank-stat-val" style="color:#2ecc71">${bsoh}%</div><div class="bank-stat-lbl">SOH</div></div>
+        <div class="bank-stat"><div class="bank-stat-val" style="color:${+bir>12?'#e74c3c':+bir>11?'#f39c12':'#2ecc71'}">${bir}mΩ</div><div class="bank-stat-lbl">Avg IR</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Destroy old charts
+  if(detailVChart){detailVChart.destroy();detailVChart=null;}
+  if(detailTChart){detailTChart.destroy();detailTChart=null;}
+
+  // Voltage chart
+  const gc='rgba(255,255,255,0.05)';
+  const vLabels=Array.from({length:24},(_,i)=>i%6===0?(i+'h'):'');
+  const vData=Array.from({length:24},(_,i)=>+(s.voltage+(Math.sin(i/3)*0.05+Math.random()*0.02-0.01)).toFixed(3));
+  const cData=Array.from({length:24},(_,i)=>+(s.current+(Math.sin(i/4)*3+Math.random()*2-1)).toFixed(1));
+  detailVChart=new Chart(document.getElementById('detailVChart'),{type:'line',
+    data:{labels:vLabels,datasets:[
+      {label:'Voltage',data:vData,borderColor:'#7c6fe0',borderWidth:1.5,pointRadius:0,tension:0.4,yAxisID:'y'},
+      {label:'Current',data:cData,borderColor:'#3a8fd9',borderWidth:1.5,pointRadius:0,tension:0.4,borderDash:[3,2],yAxisID:'y1'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:gc},ticks:{color:'#666',font:{size:8}}},
+        y:{grid:{color:gc},ticks:{color:'#7c6fe0',font:{size:8},callback:v=>v+'V'},position:'left'},
+        y1:{grid:{display:false},ticks:{color:'#3a8fd9',font:{size:8},callback:v=>v+'A'},position:'right'}
+      }}});
+
+  // Temp chart
+  const tData=Array.from({length:24},(_,i)=>+(s.temp+(Math.sin(i/5)*1.5+Math.random()*0.5-0.25)).toFixed(1));
+  detailTChart=new Chart(document.getElementById('detailTChart'),{type:'line',
+    data:{labels:vLabels,datasets:[{label:'Temp',data:tData,borderColor:'#f39c12',borderWidth:1.5,pointRadius:0,tension:0.4,fill:true,backgroundColor:'rgba(243,156,18,0.07)'}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:gc},ticks:{color:'#666',font:{size:8}}},y:{grid:{color:gc},ticks:{color:'#666',font:{size:8},callback:v=>v+'°C'}}}}});
+
+  // Cell grid
+  const cg=document.getElementById('detailCellGrid');
+  if(cg){
+    cg.innerHTML='';
+    let n=0,w=0,cr=0;
+    const total=s.norm+s.warn+s.crit;
+    for(let i=0;i<total;i++){
+      let cls,sym;
+      const r=Math.random();
+      if(cr<s.crit&&(r<s.crit/total||i>=total-s.crit+cr)){cls='c-crit';sym='✕';cr++;}
+      else if(w<s.warn&&(r<(s.warn+s.crit)/total||i>=total-s.warn-s.crit+w+cr)){cls='c-warn';sym='⚠';w++;}
+      else{cls='c-ok';sym='✓';n++;}
+      const d=document.createElement('div');
+      d.className=cls; d.textContent=sym;
+      d.title='Cell '+(i+1);
+      cg.appendChild(d);
+    }
+    const se=id=>document.getElementById(id);
+    if(se('detLegNorm'))se('detLegNorm').textContent=s.norm+' Normal';
+    if(se('detLegWarn'))se('detLegWarn').textContent=s.warn+' Warning';
+    if(se('detLegCrit'))se('detLegCrit').textContent=s.crit+' Critical';
+  }
+}
+
+function backToList(){
+  document.getElementById('subListView').style.display='block';
+  document.getElementById('subDetailView').style.display='none';
+}
+
+function updateSubClock(){
+  const el=document.getElementById('subClock');
+  if(el)el.textContent=new Date().toLocaleString('th-TH',{hour12:false});
+}
+setInterval(updateSubClock,1000);updateSubClock();
+
+// Slight RT variation on substations
+setInterval(()=>{
+  substations.forEach(s=>{
+    s.voltage=+Math.max(12.8,Math.min(13.8,(s.voltage+(Math.random()*0.02-0.01))).toFixed(3));
+    s.temp=+Math.max(15,Math.min(26,(s.temp+(Math.random()*0.2-0.1))).toFixed(1));
+  });
+  if(document.getElementById('substationGrid')&&document.getElementById('subListView').style.display!=='none') renderSubstations();
+},5000);
+
+renderSubstations();
+
+
+
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -304,6 +497,39 @@ input[type=number]{background:#0f1117;border:0.5px solid #2a2d3a;border-radius:4
 .c-warn{background:#3b2800;border:0.5px solid #7a5200;border-radius:5px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:#f39c12;transition:all .3s}
 .c-crit{background:#5a0a0a;border:0.5px solid #9b1a1a;border-radius:5px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:#ff4444;transition:all .3s}
 .c-ok:hover,.c-warn:hover,.c-crit:hover{transform:scale(1.15);z-index:2}
+
+.sub-card{background:#13151e;border:0.5px solid #2a2d3a;border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.sub-card:hover{border-color:#7c6fe0;transform:translateY(-2px)}
+.sub-card.selected{border-color:#7c6fe0;background:#1a1730}
+.sub-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0}
+.sub-ok::before{background:#2ecc71}
+.sub-warn::before{background:#f39c12}
+.sub-crit::before{background:#e74c3c}
+.sub-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:700px){.sub-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1100px){.sub-grid{grid-template-columns:repeat(4,1fr)}}
+.sub-name{font-size:12px;font-weight:700;color:#fff;margin-bottom:2px}
+.sub-loc{font-size:9px;color:#555;margin-bottom:8px}
+.sub-stat{display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px}
+.sub-stat-label{color:#666}
+.sub-mini-bar{height:3px;background:#1e2130;border-radius:2px;overflow:hidden;margin-bottom:6px}
+.sub-mini-fill{height:100%;border-radius:2px}
+.sub-footer{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:0.5px solid #2a2d3a}
+.sub-cells{display:flex;gap:6px;font-size:9px}
+.detail-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.detail-back{background:#1e2130;border:0.5px solid #2a2d3a;border-radius:5px;padding:5px 10px;font-size:10px;cursor:pointer;color:#ccc;display:flex;align-items:center;gap:5px}
+.detail-back:hover{background:#2a2d3a}
+.bank-card{background:#0f1117;border:0.5px solid #2a2d3a;border-radius:7px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:all .2s}
+.bank-card:hover{border-color:#7c6fe0;background:#13151e}
+.bank-name{font-size:11px;font-weight:600;color:#ccc;margin-bottom:4px}
+.bank-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.bank-stat{text-align:center}
+.bank-stat-val{font-size:13px;font-weight:700}
+.bank-stat-lbl{font-size:8px;color:#555;margin-top:1px}
+.region-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.region-tab{padding:4px 10px;font-size:9px;border-radius:4px;cursor:pointer;border:0.5px solid #2a2d3a;color:#666;background:#0f1117;transition:all .2s}
+.region-tab.active{background:#7c6fe0;color:#fff;border-color:#7c6fe0}
+.map-placeholder{background:#0f1117;border:0.5px solid #2a2d3a;border-radius:8px;padding:16px;margin-bottom:10px;position:relative;overflow:hidden}
 </style>
 </head>
 <body>
@@ -318,6 +544,7 @@ input[type=number]{background:#0f1117;border:0.5px solid #2a2d3a;border-radius:4
   </div>
   <div class="sd-nav">
     <div class="sd-nav-item active" onclick="showPage('overview',this)">📊 Overview</div>
+    <div class="sd-nav-item" onclick="showPage('substations',this)">🏭 Substations</div>
     <div class="sd-nav-item" onclick="showPage('ai',this)">🧠 AI Insights</div>
     <div class="sd-nav-item" onclick="showPage('alarm',this)">🔔 Alarm &amp; Notification</div>
     <div class="sd-nav-item" onclick="showPage('report',this)">📄 Reporting</div>
@@ -346,6 +573,7 @@ input[type=number]{background:#0f1117;border:0.5px solid #2a2d3a;border-radius:4
   </div>
   <div class="nav-tabs">
     <div class="nav-tab active" onclick="showPage('overview',this)">📊 Overview</div>
+    <div class="nav-tab" onclick="showPage('substations',this)">🏭 Stations</div>
     <div class="nav-tab" onclick="showPage('ai',this)">🧠 AI</div>
     <div class="nav-tab" onclick="showPage('alarm',this)">🔔 Alarm</div>
     <div class="nav-tab" onclick="showPage('report',this)">📄 Report</div>
@@ -782,6 +1010,111 @@ input[type=number]{background:#0f1117;border:0.5px solid #2a2d3a;border-radius:4
   <!-- ═══════════════════════════════════════════ -->
   <!-- PAGE: SETTINGS -->
   <!-- ═══════════════════════════════════════════ -->
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE: SUBSTATIONS -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page" id="page-substations">
+    <div class="desktop-topbar">
+      <div><div style="font-size:14px;font-weight:600;color:#fff">🏭 Substation Overview</div>
+        <div style="font-size:10px;color:#666">ภาพรวมทุกสถานีไฟฟ้า · PEA Enterprise Network · อัปเดต Real-Time</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="background:#0d3b1e;color:#2ecc71;border:0.5px solid #1a6b3a;padding:3px 8px;border-radius:4px;font-size:9px;display:flex;align-items:center;gap:4px">
+          <span style="width:5px;height:5px;border-radius:50%;background:#2ecc71;animation:pulse 2s infinite;display:inline-block"></span>12 Online · 0 Offline
+        </div>
+        <div style="font-size:10px;color:#666" id="subClock"></div>
+      </div>
+    </div>
+
+    <!-- VIEW TOGGLE -->
+    <div id="subListView">
+      <!-- SUMMARY KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px">
+        <div class="kpi-card" style="background:#13151e;border:0.5px solid #2a2d3a;border-radius:8px;padding:10px 12px">
+          <div class="kpi-label">Total Substations</div>
+          <div style="font-size:24px;font-weight:700;color:#fff">12</div>
+          <div style="font-size:9px;color:#777">ครอบคลุมพื้นที่ PEA เขต 1</div>
+        </div>
+        <div class="kpi-card" style="background:#13151e;border:0.5px solid #2a2d3a;border-radius:8px;padding:10px 12px">
+          <div class="kpi-label">Total Battery Strings</div>
+          <div style="font-size:24px;font-weight:700;color:#fff">38</div>
+          <div style="font-size:9px;color:#777">48 cells / string เฉลี่ย</div>
+        </div>
+        <div class="kpi-card" style="background:#13151e;border:0.5px solid #2a2d3a;border-radius:8px;padding:10px 12px">
+          <div class="kpi-label">System Alarm</div>
+          <div style="font-size:24px;font-weight:700;color:#f39c12" id="totalAlarms">7</div>
+          <div style="font-size:9px;color:#777">Active alarms across all sites</div>
+        </div>
+        <div class="kpi-card" style="background:#13151e;border:0.5px solid #2a2d3a;border-radius:8px;padding:10px 12px">
+          <div class="kpi-label">Avg System SOH</div>
+          <div style="font-size:24px;font-weight:700;color:#2ecc71">89.4%</div>
+          <div style="font-size:9px;color:#777">ทุกสถานีรวมกัน</div>
+        </div>
+      </div>
+
+      <!-- REGION FILTER -->
+      <div class="region-tabs">
+        <div class="region-tab active" onclick="filterRegion('all',this)">ทั้งหมด (12)</div>
+        <div class="region-tab" onclick="filterRegion('north',this)">เหนือ (4)</div>
+        <div class="region-tab" onclick="filterRegion('central',this)">กลาง (5)</div>
+        <div class="region-tab" onclick="filterRegion('east',this)">ตะวันออก (3)</div>
+      </div>
+
+      <!-- MAP THAILAND LEAFLET IFRAME -->
+      <div class="map-placeholder" style="padding:0;overflow:hidden;border-radius:8px;border:0.5px solid #111e30;background:#060c16">
+        <iframe
+          src="thailand_map.html"
+          style="width:100%;height:520px;border:none;border-radius:8px;display:block"
+          title="Thailand Substation Map"
+          id="mapFrame"
+        ></iframe>
+      </div>
+
+      <!-- STATION CARDS GRID -->
+      <div class="sub-grid" id="substationGrid"></div>
+    </div>
+
+    <!-- DETAIL VIEW (hidden by default) -->
+    <div id="subDetailView" style="display:none">
+      <div class="detail-header">
+        <div class="detail-back" onclick="backToList()">← กลับ</div>
+        <div id="detailTitle" style="font-size:14px;font-weight:600;color:#fff"></div>
+        <div id="detailBadge" class="badge b-ok" style="font-size:9px"></div>
+        <div style="font-size:9px;color:#555;margin-left:auto" id="detailLastUpdate"></div>
+      </div>
+
+      <!-- DETAIL KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px" id="detailKpiRow"></div>
+
+      <!-- BANKS -->
+      <div class="card" style="margin-bottom:8px">
+        <div class="section-title">🔋 Battery Banks</div>
+        <div id="detailBanks"></div>
+      </div>
+
+      <!-- DETAIL CHARTS -->
+      <div class="card" style="margin-bottom:8px">
+        <div class="section-title">📊 Voltage &amp; Current Trend</div>
+        <div style="position:relative;height:120px"><canvas id="detailVChart" role="img" aria-label="Station voltage trend">Voltage chart.</canvas></div>
+      </div>
+      <div class="card" style="margin-bottom:8px">
+        <div class="section-title">🌡 Temperature Trend</div>
+        <div style="position:relative;height:90px"><canvas id="detailTChart" role="img" aria-label="Station temperature trend">Temp chart.</canvas></div>
+      </div>
+
+      <!-- CELL GRID -->
+      <div class="card">
+        <div class="section-title">Cell-Level Monitoring</div>
+        <div style="display:flex;gap:12px;margin-bottom:6px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#888"><span class="dot dot-g"></span><span id="detLegNorm">—</span></div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#888"><span class="dot dot-o"></span><span id="detLegWarn">—</span></div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#888"><span class="dot dot-r"></span><span id="detLegCrit">—</span></div>
+        </div>
+        <div class="cell-grid-mon" id="detailCellGrid"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- AI INSIGHTS PAGE -->
   <div class="page" id="page-ai">
